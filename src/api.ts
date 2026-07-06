@@ -3,9 +3,40 @@
 
 const BASE = 'https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday'
 
-const pad = (n) => String(n).padStart(2, '0')
+interface FeedPage {
+  type?: string
+  titles?: { normalized?: string }
+  description?: string
+  extract?: string
+  thumbnail?: { source?: string }
+  content_urls?: { desktop?: { page?: string } }
+}
 
-async function fetchType(type, month, day) {
+interface FeedEntry {
+  text: string
+  year?: number
+  pages?: FeedPage[]
+}
+
+export interface WikiEntry {
+  year: number | undefined
+  text: string
+  title: string
+  description: string
+  extract: string
+  thumbnail: string | null
+  url: string | null
+}
+
+export interface OnThisDayData {
+  births: WikiEntry[]
+  deaths: WikiEntry[]
+  events: WikiEntry[]
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+async function fetchType(type: keyof OnThisDayData, month: number, day: number): Promise<FeedEntry[]> {
   const res = await fetch(`${BASE}/${type}/${pad(month)}/${pad(day)}`)
   if (!res.ok) throw new Error(`Wikipedia API error: ${res.status}`)
   const data = await res.json()
@@ -14,7 +45,7 @@ async function fetchType(type, month, day) {
 
 // Normalize an "on this day" entry into a card-friendly shape.
 // Each entry: { text, year, pages: [...] } — first page is usually the person/subject.
-function normalize(entry) {
+function normalize(entry: FeedEntry): WikiEntry {
   const page =
     entry.pages?.find((p) => p.type === 'standard' && p.thumbnail) ||
     entry.pages?.[0]
@@ -29,7 +60,7 @@ function normalize(entry) {
   }
 }
 
-export async function fetchOnThisDay(month, day) {
+export async function fetchOnThisDay(month: number, day: number): Promise<OnThisDayData> {
   const [births, deaths, events] = await Promise.all([
     fetchType('births', month, day),
     fetchType('deaths', month, day),
@@ -43,7 +74,7 @@ export async function fetchOnThisDay(month, day) {
 }
 
 // Sort helper: prefer entries with photos, then more recent years.
-export function rankPeople(list) {
+export function rankPeople(list: WikiEntry[]): WikiEntry[] {
   return [...list].sort((a, b) => {
     const photo = (b.thumbnail ? 1 : 0) - (a.thumbnail ? 1 : 0)
     if (photo !== 0) return photo

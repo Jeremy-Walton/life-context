@@ -1,7 +1,14 @@
 // Curated major world events, filtered to the visitor's lifetime.
 // date: ISO date, title, blurb, wiki: English Wikipedia article slug.
 
-const worldEvents = [
+export interface WorldEvent {
+  date: string
+  title: string
+  blurb: string
+  wiki: string
+}
+
+const worldEvents: WorldEvent[] = [
   { date: '1933-01-30', title: 'Hitler becomes Chancellor of Germany', blurb: 'Adolf Hitler is appointed Chancellor, beginning the Nazi era.', wiki: 'Adolf_Hitler%27s_rise_to_power' },
   { date: '1939-09-01', title: 'World War II begins', blurb: 'Germany invades Poland; Britain and France declare war days later.', wiki: 'World_War_II' },
   { date: '1941-12-07', title: 'Attack on Pearl Harbor', blurb: 'Japan attacks the US naval base in Hawaii, drawing America into WWII.', wiki: 'Attack_on_Pearl_Harbor' },
@@ -74,7 +81,7 @@ const worldEvents = [
   { date: '2026-06-11', title: 'World Cup comes to North America', blurb: 'Canada, Mexico, and the US co-host the biggest FIFA World Cup ever — 48 teams.', wiki: '2026_FIFA_World_Cup' },
 ]
 
-export function eventsInLifetime(dob) {
+export function eventsInLifetime(dob: Date): WorldEvent[] {
   const now = new Date()
   return worldEvents.filter((e) => {
     const d = new Date(e.date)

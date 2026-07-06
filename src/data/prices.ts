@@ -2,7 +2,17 @@
 // Sources: BLS averages, NATO ticket averages, USPS rate history, Census
 // median home prices. Values are approximations for storytelling, not exact.
 
-const ANCHORS = [
+export type PriceKey = 'gas' | 'movie' | 'stamp' | 'milk' | 'home'
+
+export type PriceAnchor = { year: number } & Record<PriceKey, number>
+
+export interface PriceItem {
+  key: PriceKey
+  icon: string
+  name: string
+}
+
+const ANCHORS: PriceAnchor[] = [
   { year: 1930, gas: 0.20, movie: 0.25, stamp: 0.02, milk: 0.56, home: 4800 },
   { year: 1935, gas: 0.19, movie: 0.24, stamp: 0.03, milk: 0.47, home: 3500 },
   { year: 1940, gas: 0.18, movie: 0.24, stamp: 0.03, milk: 0.52, home: 2950 },
@@ -25,9 +35,11 @@ const ANCHORS = [
   { year: 2025, gas: 3.15, movie: 11.00, stamp: 0.73, milk: 4.05, home: 420000 },
 ]
 
-export const PRICES_NOW = { year: 2026, gas: 3.10, movie: 11.75, stamp: 0.78, milk: 4.20, home: 435000 }
+export const PRICES_NOW: PriceAnchor = {
+  year: 2026, gas: 3.10, movie: 11.75, stamp: 0.78, milk: 4.20, home: 435000,
+}
 
-export const PRICE_ITEMS = [
+export const PRICE_ITEMS: PriceItem[] = [
   { key: 'gas', icon: '⛽', name: 'A gallon of gas' },
   { key: 'movie', icon: '🎟️', name: 'A movie ticket' },
   { key: 'stamp', icon: '✉️', name: 'A postage stamp' },
@@ -35,7 +47,7 @@ export const PRICE_ITEMS = [
   { key: 'home', icon: '🏠', name: 'A typical house' },
 ]
 
-export function pricesForYear(year) {
+export function pricesForYear(year: number): PriceAnchor {
   let best = ANCHORS[0]
   for (const a of ANCHORS) {
     if (Math.abs(a.year - year) < Math.abs(best.year - year)) best = a
@@ -43,7 +55,7 @@ export function pricesForYear(year) {
   return best
 }
 
-export function formatPrice(v) {
+export function formatPrice(v: number): string {
   if (v >= 1000) return `$${Math.round(v).toLocaleString('en-US')}`
   return `$${v.toFixed(2)}`
 }

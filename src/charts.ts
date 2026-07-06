@@ -1,9 +1,36 @@
-// Fetch the #1 Billboard song and #1 US box-office film for a given date
-// by parsing Wikipedia's weekly number-one list pages in the browser.
+// Fetch the #1 Billboard song, #1 US box-office film, #1 NYT book, top TV
+// show, and TIME Person of the Year for a given date by parsing Wikipedia's
+// list pages in the browser.
 
 const API = 'https://en.wikipedia.org/w/api.php'
 
-async function fetchParsedHtml(title, attempt = 0) {
+interface Cell {
+  text: string
+  href: string | null
+}
+
+type Matrix = Cell[][]
+
+interface TableMatch {
+  rows: Matrix
+  cols: Record<string, number>
+}
+
+export interface ChartItem {
+  title?: string
+  url?: string | null
+  artist?: string
+  author?: string
+  season?: string
+  date?: Date
+  year?: number
+  yearTop?: boolean
+  unavailable?: boolean
+  note?: string
+  label?: string
+}
+
+async function fetchParsedHtml(title: string, attempt = 0): Promise<Document> {
   const url =
     `${API}?action=parse&page=${encodeURIComponent(title)}` +
     `&prop=text&formatversion=2&format=json&redirects=1&origin=*`
@@ -30,8 +57,8 @@ async function fetchParsedHtml(title, attempt = 0) {
 
 // Convert a table into a matrix of {text, href} cells, expanding rowspans
 // and colspans so every row has a value in every column.
-function tableToMatrix(table) {
-  const matrix = []
+function tableToMatrix(table: Element): Matrix {
+  const matrix: Matrix = []
   const rows = [...table.querySelectorAll('tr')]
   rows.forEach((tr, r) => {
     matrix[r] = matrix[r] || []
@@ -41,11 +68,11 @@ function tableToMatrix(table) {
       const rs = parseInt(cell.getAttribute('rowspan') || '1', 10)
       const cs = parseInt(cell.getAttribute('colspan') || '1', 10)
       const a = cell.querySelector('a[href^="/wiki/"]')
-      const value = {
+      const value: Cell = {
         // \s+ → ' ' also normalizes non-breaking spaces, which Wikipedia
         // headers often contain ("Issue date") and which break literal-space
         // regex matches.
-        text: cell.textContent
+        text: (cell.textContent || '')
           .replace(/\[[^\]]*\]/g, '')
           .replace(/["""]/g, '')
           .replace(/\s+/g, ' ')
@@ -65,7 +92,7 @@ function tableToMatrix(table) {
 const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december']
 const MONTH_RE = new RegExp(`(${MONTHS.join('|')})\\s+(\\d{1,2})`)
 
-function parseMonthDay(text, year) {
+function parseMonthDay(text: string, year: number): Date | null {
   const m = text.toLowerCase().match(MONTH_RE)
   if (!m) return null
   return new Date(year, MONTHS.indexOf(m[1]), parseInt(m[2], 10))
@@ -73,12 +100,12 @@ function parseMonthDay(text, year) {
 
 // Find the table whose header matches all given regexes (checking the first
 // few rows of every table on the page); return data rows + column indexes.
-function findTable(doc, colSpecs) {
+function findTable(doc: Document, colSpecs: Record<string, RegExp>): TableMatch | null {
   for (const table of doc.querySelectorAll('table')) {
     const matrix = tableToMatrix(table)
     for (let h = 0; h < Math.min(3, matrix.length); h++) {
       const header = matrix[h] || []
-      const cols = {}
+      const cols: Record<string, number> = {}
       let ok = true
       for (const [key, re] of Object.entries(colSpecs)) {
         const idx = header.findIndex((cell) => cell && re.test(cell.text))
@@ -103,7 +130,14 @@ function findTable(doc, colSpecs) {
 
 // ---------- #1 song (Billboard Hot 100, weekly, Aug 1958 onward) ----------
 
-async function songEntriesForYear(year) {
+interface SongEntry {
+  date: Date
+  title: string
+  artist: string
+  url: string | null
+}
+
+async function songEntriesForYear(year: number): Promise<SongEntry[]> {
   const doc = await fetchParsedHtml(`List of Billboard Hot 100 number ones of ${year}`)
   const t = findTable(doc, {
     date: /date/i,
@@ -111,15 +145,15 @@ async function songEntriesForYear(year) {
     artist: /artist/i,
   })
   if (!t) throw new Error(`song table not found for ${year}`)
-  const entries = []
-  let prev = null
+  const entries: SongEntry[] = []
+  let prev: SongEntry | null = null
   for (const row of t.rows) {
     const dateCell = row[t.cols.date]
     const date = dateCell && parseMonthDay(dateCell.text, year)
     if (!date) continue
     let title = row[t.cols.song]?.text || ''
     let artist = row[t.cols.artist]?.text || ''
-    let url = row[t.cols.song]?.href || row[t.cols.artist]?.href
+    let url = row[t.cols.song]?.href || row[t.cols.artist]?.href || null
     // Some year pages leave song/artist cells blank on continuation weeks —
     // the same song is still #1, so carry the previous week's values forward.
     if (!title && prev) {
@@ -135,9 +169,9 @@ async function songEntriesForYear(year) {
   return entries
 }
 
-export async function fetchNumberOneSong(dob) {
+export async function fetchNumberOneSong(dob: Date): Promise<ChartItem> {
   const year = dob.getFullYear()
-  const fallback = {
+  const fallback: ChartItem = {
     unavailable: true,
     note: 'The weekly Billboard Hot 100 began in August 1958.',
     label: `Explore the music of ${year}`,
@@ -146,7 +180,7 @@ export async function fetchNumberOneSong(dob) {
   if (year < 1958) return fallback
   try {
     const entries = await songEntriesForYear(year)
-    let match = null
+    let match: SongEntry | null = null
     for (const e of entries) if (e.date <= dob) match = e
     if (!match) {
       // Born before the year's first chart issue — use last chart of previous year.
@@ -162,7 +196,13 @@ export async function fetchNumberOneSong(dob) {
 
 // ---------- #1 movie (US weekend box office, 1982 onward) ----------
 
-async function movieEntriesForYear(year) {
+interface MovieEntry {
+  date: Date
+  title: string
+  url: string | null
+}
+
+async function movieEntriesForYear(year: number): Promise<MovieEntry[]> {
   const doc = await fetchParsedHtml(
     `List of ${year} box office number-one films in the United States`
   )
@@ -172,7 +212,7 @@ async function movieEntriesForYear(year) {
   })
   if (!t) throw new Error(`movie table not found for ${year}`)
   const entries = t.rows
-    .map((row) => {
+    .map((row): MovieEntry | null => {
       const date = row[t.cols.date] && parseMonthDay(row[t.cols.date].text, year)
       if (!date || !row[t.cols.film]?.text) return null
       return {
@@ -181,14 +221,14 @@ async function movieEntriesForYear(year) {
         url: row[t.cols.film].href,
       }
     })
-    .filter(Boolean)
+    .filter((e): e is MovieEntry => e !== null)
   if (entries.length === 0) throw new Error(`no movie entries parsed for ${year}`)
   return entries
 }
 
 // Pre-1982 fallback: the highest-grossing film of the birth year, from the
 // "Highest-grossing films of {year}" table on Wikipedia's "{year} in film".
-async function topFilmOfYear(year) {
+async function topFilmOfYear(year: number): Promise<ChartItem> {
   const doc = await fetchParsedHtml(`${year} in film`)
   const t = findTable(doc, {
     rank: /rank/i,
@@ -202,9 +242,9 @@ async function topFilmOfYear(year) {
   return { title, url: row[t.cols.title].href, yearTop: true, year }
 }
 
-export async function fetchNumberOneMovie(dob) {
+export async function fetchNumberOneMovie(dob: Date): Promise<ChartItem> {
   const year = dob.getFullYear()
-  const fallback = {
+  const fallback: ChartItem = {
     unavailable: true,
     note: 'Box-office records are patchy this far back.',
     label: `Explore the films of ${year}`,
@@ -237,8 +277,15 @@ export async function fetchNumberOneMovie(dob) {
 
 // ---------- #1 book (NYT fiction best-seller list, weekly) ----------
 
-async function bookEntriesForYear(year) {
-  let doc
+interface BookEntry {
+  date: Date
+  title: string
+  author: string
+  url: string | null
+}
+
+async function bookEntriesForYear(year: number): Promise<BookEntry[]> {
+  let doc: Document
   try {
     doc = await fetchParsedHtml(`List of The New York Times number-one books of ${year}`)
   } catch {
@@ -250,14 +297,14 @@ async function bookEntriesForYear(year) {
   })
   if (!t) throw new Error(`book table not found for ${year}`)
   const authorCol = t.cols.book + 1 // Author column follows Book
-  const entries = []
-  let prev = null
+  const entries: BookEntry[] = []
+  let prev: BookEntry | null = null
   for (const row of t.rows) {
     const date = row[t.cols.date] && parseMonthDay(row[t.cols.date].text, year)
     if (!date) continue
     let title = row[t.cols.book]?.text || ''
     let author = row[authorCol]?.text || ''
-    let url = row[t.cols.book]?.href
+    let url = row[t.cols.book]?.href || null
     if (!title && prev) { title = prev.title; author = prev.author; url = prev.url }
     if (!title) continue
     prev = { date, title, author, url }
@@ -267,9 +314,9 @@ async function bookEntriesForYear(year) {
   return entries
 }
 
-export async function fetchNumberOneBook(dob) {
+export async function fetchNumberOneBook(dob: Date): Promise<ChartItem> {
   const year = dob.getFullYear()
-  const fallback = {
+  const fallback: ChartItem = {
     unavailable: true,
     note: 'Weekly best-seller records are patchy this far back.',
     label: `Explore the books of ${year}`,
@@ -278,7 +325,7 @@ export async function fetchNumberOneBook(dob) {
   if (year < 1942) return fallback
   try {
     const entries = await bookEntriesForYear(year)
-    let match = null
+    let match: BookEntry | null = null
     for (const e of entries) if (e.date <= dob) match = e
     if (!match) {
       const prev = await bookEntriesForYear(year - 1)
@@ -293,14 +340,14 @@ export async function fetchNumberOneBook(dob) {
 
 // ---------- Top TV show of the season (Nielsen ratings, 1950–51 onward) ----------
 
-export async function fetchTopTVShow(dob) {
+export async function fetchTopTVShow(dob: Date): Promise<ChartItem> {
   const year = dob.getFullYear()
   // TV seasons run September–August.
   const start = dob.getMonth() >= 8 ? year : year - 1
   const end = start + 1
   const endLabel = end % 100 === 0 ? String(end) : String(end % 100).padStart(2, '0')
   const season = `${start}–${endLabel}`
-  const fallback = {
+  const fallback: ChartItem = {
     unavailable: true,
     note: 'Nielsen season ratings begin with the 1950–51 season.',
     label: `Explore ${year} in television`,
@@ -327,8 +374,8 @@ export async function fetchTopTVShow(dob) {
 
 // ---------- Time Person of the Year (1927 onward) ----------
 
-export async function fetchPersonOfTheYear(year) {
-  const fallback = {
+export async function fetchPersonOfTheYear(year: number): Promise<ChartItem> {
+  const fallback: ChartItem = {
     unavailable: true,
     note: 'TIME began naming a Person of the Year in 1927.',
     label: 'About Person of the Year',
@@ -347,7 +394,7 @@ export async function fetchPersonOfTheYear(year) {
     if (!title) throw new Error(`no Person of the Year found for ${year}`)
     return {
       title,
-      url: row[t.cols.choice].href || 'https://en.wikipedia.org/wiki/Time_Person_of_the_Year',
+      url: row?.[t.cols.choice]?.href || 'https://en.wikipedia.org/wiki/Time_Person_of_the_Year',
     }
   } catch (err) {
     console.warn('[charts] Person of the Year lookup failed:', err)

@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchOnThisDay, rankPeople } from './api.js'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { fetchOnThisDay, rankPeople, type OnThisDayData, type WikiEntry } from './api'
 import {
   fetchNumberOneSong,
   fetchNumberOneMovie,
   fetchNumberOneBook,
   fetchTopTVShow,
   fetchPersonOfTheYear,
-} from './charts.js'
-import { eventsInLifetime } from './data/worldEvents.js'
-import { techAfter } from './data/technology.js'
-import { PRICE_ITEMS, PRICES_NOW, pricesForYear, formatPrice } from './data/prices.js'
+  type ChartItem,
+} from './charts'
+import { eventsInLifetime, type WorldEvent } from './data/worldEvents'
+import { techAfter } from './data/technology'
+import { PRICE_ITEMS, PRICES_NOW, pricesForYear, formatPrice } from './data/prices'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -20,11 +21,11 @@ import { Spinner } from '@/components/ui/spinner'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-function formatDate(d) {
+function formatDate(d: Date): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-function yearsSince(d) {
+function yearsSince(d: Date): number {
   const now = new Date()
   let y = now.getFullYear() - d.getFullYear()
   const anniversary = new Date(now.getFullYear(), d.getMonth(), d.getDate())
@@ -32,13 +33,13 @@ function yearsSince(d) {
   return y
 }
 
-function ageAt(date, dob) {
-  return Math.floor((date - dob) / (365.25 * 24 * 3600 * 1000))
+function ageAt(date: Date, dob: Date): number {
+  return Math.floor((date.getTime() - dob.getTime()) / (365.25 * 24 * 3600 * 1000))
 }
 
 // ---------- scroll-reveal ----------
 function useReveal() {
-  const ref = useRef(null)
+  const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   useEffect(() => {
     const el = ref.current
@@ -50,10 +51,10 @@ function useReveal() {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
-  return [ref, visible]
+  return [ref, visible] as const
 }
 
-function Reveal({ children, className = '' }) {
+function Reveal({ children, className = '' }: { children: ReactNode; className?: string }) {
   const [ref, visible] = useReveal()
   return (
     <div ref={ref} className={`reveal ${visible ? 'is-visible' : ''} ${className}`}>
@@ -71,7 +72,7 @@ function WikiLink() {
   )
 }
 
-function SectionHead({ title, subtitle }) {
+function SectionHead({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <Reveal>
       <div className="mb-12 text-center">
@@ -82,11 +83,10 @@ function SectionHead({ title, subtitle }) {
   )
 }
 
-const cardHover =
-  'transition-all hover:-translate-y-1 hover:border-gold/50'
+const cardHover = 'transition-all hover:-translate-y-1 hover:border-gold/50'
 
 // ---------- cards ----------
-function PersonCard({ person }) {
+function PersonCard({ person }: { person: WikiEntry }) {
   return (
     <a href={person.url || '#'} target="_blank" rel="noreferrer" className="block h-full">
       <Card className={`h-full flex-row gap-4 p-4 ${cardHover}`}>
@@ -118,10 +118,10 @@ function PersonCard({ person }) {
   )
 }
 
-function EventCard({ ev }) {
+function EventCard({ ev }: { ev: WikiEntry }) {
   return (
     <a href={ev.url || '#'} target="_blank" rel="noreferrer" className="block">
-      <Card className={`flex-row gap-4 p-4 transition-all hover:translate-x-1 hover:border-gold/50`}>
+      <Card className="flex-row gap-4 p-4 transition-all hover:translate-x-1 hover:border-gold/50">
         {ev.thumbnail && (
           <img src={ev.thumbnail} alt="" loading="lazy" className="size-16 shrink-0 rounded-lg object-cover" />
         )}
@@ -136,16 +136,17 @@ function EventCard({ ev }) {
 }
 
 // Fetch (and cache) the lead image of a Wikipedia article via the REST summary API.
-const thumbCache = new Map()
-function useWikiThumb(slug) {
-  const [thumb, setThumb] = useState(() => thumbCache.get(slug) ?? null)
+const thumbCache = new Map<string, string | null>()
+function useWikiThumb(slug: string): string | null {
+  // Cache hits are picked up by the lazy initializer; the effect only fetches.
+  const [thumb, setThumb] = useState<string | null>(() => thumbCache.get(slug) ?? null)
   useEffect(() => {
-    if (thumbCache.has(slug)) { setThumb(thumbCache.get(slug)); return }
+    if (thumbCache.has(slug)) return
     let live = true
     fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        const src = d?.thumbnail?.source || null
+        const src: string | null = d?.thumbnail?.source || null
         thumbCache.set(slug, src)
         if (live) setThumb(src)
       })
@@ -155,7 +156,7 @@ function useWikiThumb(slug) {
   return thumb
 }
 
-function WorldEventCard({ ev, dob }) {
+function WorldEventCard({ ev, dob }: { ev: WorldEvent; dob: Date }) {
   const d = new Date(ev.date)
   const age = ageAt(d, dob)
   const thumb = useWikiThumb(ev.wiki)
@@ -199,7 +200,12 @@ function WorldEventCard({ ev, dob }) {
 }
 
 // ---------- sections ----------
-function Section({ id, title, subtitle, children }) {
+function Section({ id, title, subtitle, children }: {
+  id: string
+  title: string
+  subtitle: string
+  children?: ReactNode
+}) {
   return (
     <section id={id} className="border-t py-20">
       <SectionHead title={title} subtitle={subtitle} />
@@ -208,7 +214,11 @@ function Section({ id, title, subtitle, children }) {
   )
 }
 
-function ShowAllButton({ expanded, total, onClick }) {
+function ShowAllButton({ expanded, total, onClick }: {
+  expanded: boolean
+  total: number
+  onClick: () => void
+}) {
   return (
     <div className="mt-8 flex justify-center">
       <Button variant="outline" onClick={onClick}>
@@ -218,7 +228,13 @@ function ShowAllButton({ expanded, total, onClick }) {
   )
 }
 
-function PeopleSection({ id, title, subtitle, people, emptyText }) {
+function PeopleSection({ id, title, subtitle, people, emptyText }: {
+  id: string
+  title: string
+  subtitle: string
+  people: WikiEntry[]
+  emptyText: string
+}) {
   const [expanded, setExpanded] = useState(false)
   const shown = expanded ? people : people.slice(0, 6)
   return (
@@ -249,25 +265,12 @@ function PeopleSection({ id, title, subtitle, people, emptyText }) {
   )
 }
 
-function ChartCard({ icon, label, data, sub }) {
-  const inner = (
-    <>
-      <span className="text-4xl">{icon}</span>
-      <span className="eyebrow">{label}</span>
-      {data?.unavailable ? (
-        <>
-          <h3 className="text-2xl font-bold">{data.label}</h3>
-          <p className="text-sm text-muted-foreground">{data.note}</p>
-        </>
-      ) : (
-        <>
-          <h3 className="text-2xl font-bold">{data?.title}</h3>
-          {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
-        </>
-      )}
-      <WikiLink />
-    </>
-  )
+function ChartCard({ icon, label, data, sub }: {
+  icon: string
+  label: string
+  data: ChartItem | null
+  sub?: string | null
+}) {
   return (
     <Reveal className="h-full">
       {!data ? (
@@ -280,7 +283,20 @@ function ChartCard({ icon, label, data, sub }) {
       ) : (
         <a href={data.url || '#'} target="_blank" rel="noreferrer" className="block h-full">
           <Card className={`h-full min-h-[220px] items-center justify-center gap-1.5 p-8 text-center ${cardHover}`}>
-            {inner}
+            <span className="text-4xl">{icon}</span>
+            <span className="eyebrow">{label}</span>
+            {data.unavailable ? (
+              <>
+                <h3 className="text-2xl font-bold">{data.label}</h3>
+                <p className="text-sm text-muted-foreground">{data.note}</p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold">{data.title}</h3>
+                {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
+              </>
+            )}
+            <WikiLink />
           </Card>
         </a>
       )}
@@ -288,20 +304,20 @@ function ChartCard({ icon, label, data, sub }) {
   )
 }
 
-function ChartsSection({ dob }) {
-  const [song, setSong] = useState(null)
-  const [movie, setMovie] = useState(null)
-  const [book, setBook] = useState(null)
-  const [tv, setTv] = useState(null)
-  const [poty, setPoty] = useState(null)
+function ChartsSection({ dob }: { dob: Date }) {
+  const [song, setSong] = useState<ChartItem | null>(null)
+  const [movie, setMovie] = useState<ChartItem | null>(null)
+  const [book, setBook] = useState<ChartItem | null>(null)
+  const [tv, setTv] = useState<ChartItem | null>(null)
+  const [poty, setPoty] = useState<ChartItem | null>(null)
+  // Fresh dob = fresh mount (keyed by the parent), so no state resets needed here.
   useEffect(() => {
     let live = true
-    setSong(null); setMovie(null); setBook(null); setTv(null); setPoty(null)
-    fetchNumberOneSong(dob).then((s) => live && setSong(s))
-    fetchNumberOneMovie(dob).then((m) => live && setMovie(m))
-    fetchNumberOneBook(dob).then((b) => live && setBook(b))
-    fetchTopTVShow(dob).then((t) => live && setTv(t))
-    fetchPersonOfTheYear(dob.getFullYear()).then((p) => live && setPoty(p))
+    fetchNumberOneSong(dob).then((s) => { if (live) setSong(s) })
+    fetchNumberOneMovie(dob).then((m) => { if (live) setMovie(m) })
+    fetchNumberOneBook(dob).then((b) => { if (live) setBook(b) })
+    fetchTopTVShow(dob).then((t) => { if (live) setTv(t) })
+    fetchPersonOfTheYear(dob.getFullYear()).then((p) => { if (live) setPoty(p) })
     return () => { live = false }
   }, [dob])
 
@@ -322,7 +338,7 @@ function ChartsSection({ dob }) {
             movie && !movie.unavailable
               ? movie.yearTop
                 ? `Highest-grossing film of ${movie.year} (weekly charts began in 1982)`
-                : `No. 1 at the US box office, weekend of ${formatDate(movie.date)}`
+                : `No. 1 at the US box office, weekend of ${movie.date ? formatDate(movie.date) : ''}`
               : null
           }
         />
@@ -343,7 +359,7 @@ function ChartsSection({ dob }) {
   )
 }
 
-function PricesSection({ dob }) {
+function PricesSection({ dob }: { dob: Date }) {
   const then = pricesForYear(dob.getFullYear())
   return (
     <Section
@@ -371,7 +387,7 @@ function PricesSection({ dob }) {
   )
 }
 
-function TechSection({ dob }) {
+function TechSection({ dob }: { dob: Date }) {
   const [expanded, setExpanded] = useState(false)
   const items = useMemo(() => techAfter(dob), [dob])
   const shown = expanded ? items : items.slice(0, 9)
@@ -429,14 +445,14 @@ function TechSection({ dob }) {
 }
 
 // ---------- date entry ----------
-function DateEntry({ onSubmit }) {
+function DateEntry({ onSubmit }: { onSubmit: (d: Date) => void }) {
   const [day, setDay] = useState('')
   const [month, setMonth] = useState('')
   const [year, setYear] = useState('')
   const [error, setError] = useState('')
   const thisYear = new Date().getFullYear()
 
-  function submit(e) {
+  function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const d = parseInt(day, 10), m = parseInt(month, 10), y = parseInt(year, 10)
     const date = new Date(y, m - 1, d)
@@ -493,21 +509,26 @@ function DateEntry({ onSubmit }) {
 
 // ---------- main app ----------
 export default function App() {
-  const [dob, setDob] = useState(null)
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [dob, setDob] = useState<Date | null>(null)
+  const [data, setData] = useState<OnThisDayData | null>(null)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(0)
 
+  // Loading is derived: a chosen date with no data and no error means we're fetching.
+  const loading = !!dob && !data && !error
+
   useEffect(() => {
     if (!dob) return
-    setLoading(true)
-    setError('')
     fetchOnThisDay(dob.getMonth() + 1, dob.getDate())
       .then(setData)
       .catch(() => setError('Could not reach Wikipedia. Check your connection and try again.'))
-      .finally(() => setLoading(false))
   }, [dob])
+
+  function reset() {
+    setDob(null)
+    setData(null)
+    setError('')
+  }
 
   useEffect(() => {
     function onScroll() {
@@ -553,7 +574,7 @@ export default function App() {
           variant="outline"
           size="sm"
           className="mt-8"
-          onClick={() => { setDob(null); setData(null) }}
+          onClick={reset}
         >
           ← Change date
         </Button>
@@ -583,7 +604,7 @@ export default function App() {
             emptyText={`Wikipedia records no notable deaths on ${formatDate(dob)}.`}
           />
 
-          <ChartsSection dob={dob} />
+          <ChartsSection key={dob.toISOString()} dob={dob} />
 
           <PricesSection dob={dob} />
 
@@ -642,7 +663,7 @@ export default function App() {
               <Button
                 variant="outline"
                 className="mt-8"
-                onClick={() => { setDob(null); setData(null); window.scrollTo(0, 0) }}
+                onClick={() => { reset(); window.scrollTo(0, 0) }}
               >
                 Try another date
               </Button>

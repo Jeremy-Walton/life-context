@@ -1,7 +1,15 @@
 // Everyday technology and when it arrived — used for "invented after you were born".
 // date: when it became available/public. icon: emoji. wiki: article slug.
 
-const technology = [
+export interface TechItem {
+  date: string
+  name: string
+  icon: string
+  blurb: string
+  wiki: string
+}
+
+const technology: TechItem[] = [
   { date: '1950-02-01', name: 'The credit card', icon: '💳', blurb: 'Diners Club issues the first multi-use charge card.', wiki: 'Diners_Club_International' },
   { date: '1954-10-18', name: 'Transistor radio', icon: '📻', blurb: 'The Regency TR-1 puts music in your pocket.', wiki: 'Regency_TR-1' },
   { date: '1955-06-01', name: 'Wireless TV remote', icon: '📺', blurb: 'Zenith’s "Flash-Matic" ends the walk to the television.', wiki: 'Remote_control' },
@@ -53,10 +61,10 @@ const technology = [
   { date: '2022-11-30', name: 'ChatGPT', icon: '🤖', blurb: 'Conversational AI reaches 100 million users in two months.', wiki: 'ChatGPT' },
 ]
 
-export function techAfter(dob) {
+export function techAfter(dob: Date): TechItem[] {
   return technology
     .filter((t) => new Date(t.date) > dob)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 }
 
 export default technology
