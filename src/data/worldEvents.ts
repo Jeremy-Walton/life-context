@@ -78,7 +78,7 @@ const worldEvents: WorldEvent[] = [
   { date: '2025-05-08', title: 'First American pope', blurb: 'Chicago-born Robert Prevost is elected Pope Leo XIV.', wiki: 'Pope_Leo_XIV' },
   { date: '2025-10-13', title: 'Gaza ceasefire and hostage release', blurb: 'Hamas frees the last 20 living hostages as a US-brokered peace plan takes effect.', wiki: 'Gaza_peace_plan' },
   { date: '2026-02-06', title: 'Milan–Cortina Winter Olympics', blurb: 'Italy hosts the Winter Games; Norway sets a record 41-medal haul.', wiki: '2026_Winter_Olympics' },
-  { date: '2026-06-11', title: 'World Cup comes to North America', blurb: 'Canada, Mexico, and the US co-host the biggest FIFA World Cup ever — 48 teams.', wiki: '2026_FIFA_World_Cup' },
+  { date: '2026-06-11', title: 'World Cup comes to North America', blurb: 'Canada, Mexico, and the US co-host the biggest FIFA World Cup ever, with 48 teams.', wiki: '2026_FIFA_World_Cup' },
 ]
 
 export function eventsInLifetime(dob: Date): WorldEvent[] {

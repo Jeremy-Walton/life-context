@@ -330,7 +330,7 @@ function ChartsSection({ dob }: { dob: Date }) {
       <div className="mx-auto grid max-w-4xl gap-5 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
         <ChartCard
           icon="🎵" label="No. 1 song" data={song}
-          sub={song && !song.unavailable ? `${song.artist} — No. 1 on the Billboard Hot 100` : null}
+          sub={song && !song.unavailable ? `${song.artist}, No. 1 on the Billboard Hot 100` : null}
         />
         <ChartCard
           icon="🎬" label="No. 1 movie" data={movie}
@@ -344,7 +344,7 @@ function ChartsSection({ dob }: { dob: Date }) {
         />
         <ChartCard
           icon="📖" label="No. 1 book" data={book}
-          sub={book && !book.unavailable ? `${book.author ? `by ${book.author} — ` : ''}atop the New York Times fiction best-seller list` : null}
+          sub={book && !book.unavailable ? `${book.author ? `by ${book.author}, ` : ''}atop the New York Times fiction best-seller list` : null}
         />
         <ChartCard
           icon="📺" label="Top TV show" data={tv}
@@ -398,7 +398,7 @@ function TechSection({ dob }: { dob: Date }) {
       subtitle={
         items.length > 0
           ? `${items.length} everyday things that didn't exist yet on ${formatDate(dob)}.`
-          : 'You arrived after almost everything on our list — the future is yours to invent.'
+          : 'You arrived after almost everything on our list. The future is yours to invent.'
       }
     >
       {items.length > 0 && (
@@ -592,9 +592,9 @@ export default function App() {
           <PeopleSection
             id="born-same-date"
             title="Your exact birthdate twins"
-            subtitle={`Notable people born on ${formatDate(dob)} — the very same day as you.`}
+            subtitle={`Notable people born on ${formatDate(dob)}, the very same day as you.`}
             people={derived.bornSameDate}
-            emptyText={`No one on Wikipedia was born on ${formatDate(dob)} — you may be the most notable so far.`}
+            emptyText={`No one on Wikipedia was born on ${formatDate(dob)}. You may be the most notable so far.`}
           />
           <PeopleSection
             id="died-same-date"
@@ -616,7 +616,7 @@ export default function App() {
             {derived.eventsThatDay.length === 0 ? (
               <Reveal>
                 <p className="py-4 text-center italic text-muted-foreground">
-                  A quiet day for the history books — the headlines were all about you.
+                  A quiet day for the history books. The headlines were all about you.
                 </p>
               </Reveal>
             ) : (
@@ -646,7 +646,7 @@ export default function App() {
             <Reveal>
               <p className="mx-auto mb-4 max-w-lg font-heading text-2xl font-semibold">
                 {yearsSince(dob)} years. {derived.lifetime.length} world-changing moments.
-                One lifetime — yours.
+                One lifetime: yours.
               </p>
               <p className="text-sm text-muted-foreground">
                 Data from{' '}
