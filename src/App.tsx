@@ -489,8 +489,7 @@ function DateEntry({ onSubmit }: { onSubmit: (d: Date) => void }) {
         Your Lifetime
       </h1>
       <p className="mb-10 max-w-xl text-muted-foreground">
-        Enter your date of birth to discover who shares your exact birthdate, what
-        topped the charts, and everything invented since you arrived.
+        Enter your birthdate to discover who shares it, what was going on in the world, and what has happened since.
       </p>
       <form onSubmit={submit} className="flex flex-wrap items-center justify-center gap-2.5">
         <NativeSelect
@@ -608,7 +607,7 @@ export default function App() {
         <main className="mx-auto max-w-[1060px] px-6">
           <PeopleSection
             id="born-same-date"
-            title="Your exact birthdate twins"
+            title="Your birthday twins"
             subtitle={`Notable people born on ${formatDate(dob)}, the very same day as you.`}
             people={derived.bornSameDate}
             emptyText={`No one on Wikipedia was born on ${formatDate(dob)}. You may be the most notable so far.`}
