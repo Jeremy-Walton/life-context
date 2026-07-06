@@ -64,6 +64,22 @@ function Reveal({ children, className = '' }: { children: ReactNode; className?:
 }
 
 // ---------- shared bits ----------
+function Copyright({ className = '' }: { className?: string }) {
+  return (
+    <p className={`text-xs text-muted-foreground ${className}`}>
+      © {new Date().getFullYear()}{' '}
+      <a
+        href="https://github.com/Jeremy-Walton"
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium underline-offset-4 hover:text-gold-deep hover:underline"
+      >
+        Jeremy Walton
+      </a>
+    </p>
+  )
+}
+
 function WikiLink() {
   return (
     <span className="font-heading text-xs font-bold text-gold-deep">
@@ -467,7 +483,7 @@ function DateEntry({ onSubmit }: { onSubmit: (d: Date) => void }) {
   }
 
   return (
-    <div className="dark stage flex min-h-screen flex-col items-center justify-center p-8 text-center text-foreground">
+    <div className="dark stage relative flex min-h-screen flex-col items-center justify-center p-8 text-center text-foreground">
       <p className="eyebrow">An interactive history of</p>
       <h1 className="headline-gradient my-4 text-6xl font-bold leading-[1.05] md:text-8xl">
         Your Lifetime
@@ -503,6 +519,7 @@ function DateEntry({ onSubmit }: { onSubmit: (d: Date) => void }) {
         </Button>
       </form>
       {error && <p className="mt-4 text-destructive">{error}</p>}
+      <Copyright className="absolute right-6 bottom-4" />
     </div>
   )
 }
@@ -668,6 +685,9 @@ export default function App() {
                 Try another date
               </Button>
             </Reveal>
+            <div className="mt-12 flex justify-end">
+              <Copyright />
+            </div>
           </footer>
         </main>
       )}
