@@ -69,7 +69,7 @@ function Copyright({ className = '' }: { className?: string }) {
     <p className={`text-xs text-muted-foreground ${className}`}>
       © {new Date().getFullYear()}{' '}
       <a
-        href="https://github.com/Jeremy-Walton"
+        href="https://github.com/Jeremy-Walton/life-context"
         target="_blank"
         rel="noreferrer"
         className="font-medium underline-offset-4 hover:text-gold-deep hover:underline"
