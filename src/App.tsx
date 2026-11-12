@@ -64,19 +64,24 @@ function Reveal({ children, className = '' }: { children: ReactNode; className?:
 }
 
 // ---------- shared bits ----------
-function Copyright({ className = '' }: { className?: string }) {
+function SiteFooter({ className = '' }: { className?: string }) {
+  const linkClass = 'transition-colors hover:text-gold-deep focus-visible:text-gold-deep'
   return (
-    <p className={`text-xs text-muted-foreground ${className}`}>
-      © {new Date().getFullYear()}{' '}
-      <a
-        href="https://github.com/Jeremy-Walton/life-context"
-        target="_blank"
-        rel="noreferrer"
-        className="font-medium underline-offset-4 hover:text-gold-deep hover:underline"
-      >
-        Jeremy Walton
-      </a>
-    </p>
+    <footer className={className}>
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground">
+        <a href="https://www.jeremywalton.dev/" className={linkClass}>
+          &copy;{new Date().getFullYear()} Jeremy Walton
+        </a>
+        <a
+          href="https://www.bible.com/bible/59/PRO.3.5-6.ESV"
+          target="_blank"
+          rel="noreferrer"
+          className={linkClass}
+        >
+          Proverbs 3:5-6
+        </a>
+      </div>
+    </footer>
   )
 }
 
@@ -518,7 +523,7 @@ function DateEntry({ onSubmit }: { onSubmit: (d: Date) => void }) {
         </Button>
       </form>
       {error && <p className="mt-4 text-destructive">{error}</p>}
-      <Copyright className="absolute right-6 bottom-4" />
+      <SiteFooter className="absolute inset-x-0 bottom-0" />
     </div>
   )
 }
@@ -684,10 +689,8 @@ export default function App() {
                 Try another date
               </Button>
             </Reveal>
-            <div className="mt-12 flex justify-end">
-              <Copyright />
-            </div>
           </footer>
+          <SiteFooter />
         </main>
       )}
     </div>
